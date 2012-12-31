@@ -1,0 +1,33 @@
+{
+  "name":           "sbt",
+  "description":    "The SyncML Backup Tool.",
+  "version":        "0.0.1",
+  "main":           "backuptool.js",
+  "author":         "metagriffin <mg.npmjs@uberdev.org>",
+  "repository": {
+    "type": "git",
+    "url":  "git://github.com/metagriffin/sbt-js.git"
+  },
+  "bin": {
+    "sbt": "sbt.js"
+  },
+  "bugs": {
+    "url": "https://github.com/metagriffin/sbt-js/issues"
+  },
+  "dependencies": {
+    "amdefine":      ">=0.0.4",
+    "syncml-js":     ">=0.0.11",
+    "underscore":    ">=1.4.2",
+    "argparse":      ">=0.1.8",
+    "indexeddb-js":  ">=0.0.9",
+    "sqlite3":       ">=2.1.1"
+  },
+  "devDependencies": {
+    "jasmine-node":  ">=1.0.26"
+  },
+  "keywords": [
+    "syncml",
+    "backup",
+    "tool"
+  ]
+}
