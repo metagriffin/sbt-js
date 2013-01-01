@@ -33,7 +33,9 @@ define([
 ) {
 
   // todo: move to a more generic logging package...
-  var log = syncml.logging.getLogger('sbt');
+  var logging = syncml.logging;
+
+  var log = logging.getLogger('sbt');
   var exports = {};
 
   var StdoutStream = syncml.common.Stream.extend({
@@ -235,11 +237,8 @@ define([
 
     constructor: function(options) {
       this._opts = {};
-      // this._sdb     = null;
-      // this._idb     = null;
-      // this._context = null;
-      // this._adapter = null;
-      // this._peer    = null;
+      // TODO: figure out how to pull this dynamically from package.json...
+      this._version = '0.0.7';
     },
 
     initialize: function(args, cb) {
@@ -279,6 +278,11 @@ define([
         defaultValue : storedOptions ? storedOptions.appendLog : false,
         action       : 'storeTrue',
         help         : 'append logs to previous logs instead of overwriting'
+      });
+      parser.addArgument(['-A', '--no-append-log'], {
+        dest         : 'noAppendLog',
+        action       : 'storeTrue',
+        help         : 'negates a current or previous "--append-log"'
       });
 
       // backup-specific arguments:
@@ -332,15 +336,40 @@ define([
       });
 
       self._opts = parser.parseArgs(args);
+      if ( self._opts.noAppendLog )
+        self._opts.appendLog = false;
 
-      if ( storedOptions || _.indexOf(['backup'], self._opts.command) >= 0 )
-        return cb();
+      if ( ! storedOptions && _.indexOf(['backup'], self._opts.command) < 0 )
+      {
+        console.log('loading old options');
+        return fs.readFile(self._opts.directory + '/.sync/options.json', function(err, data) {
+          if ( err )
+            return cb(err);
+          return self._init(args, JSON.parse(data), cb);
+        });
+      }
 
-      fs.readFile(self._opts.directory + '/.sync/options.json', function(err, data) {
-        if ( err )
-          return cb(err);
-        return self._init(args, JSON.parse(data), cb);
-      });
+      self._initLogging(self._opts.command);
+      return cb();
+    },
+
+    //-------------------------------------------------------------------------
+    _initLogging: function(command) {
+      var self = this;
+      try{
+        var stats = fs.statSync(self._opts.directory + '/.sync');
+        if ( ! stats.isDirectory() )
+          return;
+      }catch(e){
+        if ( e.code == 'ENOENT' )
+          return;
+        throw e;
+      }
+      logging.getLogger().addHandler(new logging.FileHandler({
+        filename : self._opts.directory + '/.sync/sbt.log',
+        append   : self._opts.appendLog
+      }));
+      log.info('initialized sbt with command "%s"', command);
     },
 
     //-------------------------------------------------------------------------
@@ -356,9 +385,14 @@ define([
         devInfo: {
           devID               : 'sbt.discover.' + syncml.common.makeID(),
           devType             : syncml.DEVTYPE_WORKSTATION,
-          manufacturerName    : 'syncml-js',
-          modelName           : 'syncml-js.backup.tool',
-          hierarchicalSync    : false
+          manufacturerName    : 'metagriffin',
+          modelName           : 'sbt (syncml-js/' + syncml.version + ')',
+          softwareVersion     : self._version,
+          hierarchicalSync    : false,
+          extensions          : {
+            'x-server-changes'        : 'notify',
+            'x-single-session-device' : 'true'
+          }
         },
         stores: [],
         peer: {
@@ -419,10 +453,14 @@ define([
             if ( err )
               return cb(err);
             return cb('file or directory "' + self._opts.directory
-                      + '" already exists');
+                      + '" already exists (use --force to override)');
           });
         },
         _.bind(syncml.common.makedirs, null, self._opts.directory + '/.sync'),
+        function(cb) {
+          self._initLogging(self._opts.command);
+          return cb();
+        },
         _.bind(syncml.common.makedirs, null, self._opts.directory + '/stores'),
         _.bind(self._saveOptions, self)
       ], cb);
@@ -528,7 +566,7 @@ define([
               }, cb);
             },
 
-            // execute the sync
+            // execute the download sync
             function(cb) {
               // todo: should these be Tool member variables?...
               var sdb     = new sqlite3.Database(self._opts.directory + '/.sync/syncml.db');
@@ -539,9 +577,13 @@ define([
                 devInfo: {
                   devID               : 'sbt.' + syncml.common.makeID(),
                   devType             : syncml.DEVTYPE_WORKSTATION,
-                  manufacturerName    : 'syncml-js',
-                  modelName           : 'syncml-js.backup.tool',
-                  hierarchicalSync    : false
+                  manufacturerName    : 'metagriffin',
+                  modelName           : 'sbt (syncml-js/' + syncml.version + ')',
+                  softwareVersion     : self._version,
+                  hierarchicalSync    : false,
+                  extensions          : {
+                    'x-server-changes'  : 'notify'
+                  }
                 },
                 stores: _.values(stores),
                 peer: {
@@ -643,6 +685,7 @@ define([
       var ctxt = new syncml.Context({storage: idb});
       var adapter = null;
       var peer    = null;
+
       syncml.common.cascade([
 
         // configure adapter
@@ -669,16 +712,13 @@ define([
         function(cb) {
           fs.readFile(self._opts.directory + '/.sync/state.json', function(err, data) {
             var prev = JSON.parse(data);
-
             syncml.common.cascade(adapter.getStores(), function(store, cb) {
               store.agent._storage.allMeta(function(err, items) {
                 if ( err )
                   return cb(err);
-
                 pitems = prev[store.uri];
                 if ( ! pitems )
                   return cb('unexpected store "' + store.uri + '" (not in state.json)');
-
                 // search for added/changed items
                 syncml.common.cascade(items, function(item, cb) {
                   if ( ! pitems[item.id] )
@@ -794,25 +834,31 @@ define([
 
     //-------------------------------------------------------------------------
     version: function(cb) {
-      // TODO: figure out how to pull this dynamically from package.json...
-      util.puts('0.0.6');
+      util.puts(this._version);
       return cb();
     },
 
     //-------------------------------------------------------------------------
     exec: function(cb) {
+      var self = this;
+      var ch = new logging.ConsoleHandler();
       switch ( this._opts.verbose )
       {
         case null:
-        case 0:  syncml.logging.level = syncml.logging.WARNING; break;
-        case 1:  syncml.logging.level = syncml.logging.INFO;    break;
-        case 2:  syncml.logging.level = syncml.logging.DEBUG;   break;
+        case 0:  ch.level = logging.ERROR; break;
+        case 1:  ch.level = logging.INFO;    break;
+        case 2:  ch.level = logging.DEBUG;   break;
         default:
-        case 3:  syncml.logging.level = syncml.logging.NOTSET;  break;
+        case 3:  ch.level = logging.NOTSET;  break;
       }
+      logging.getLogger().addHandler(ch);
       if ( this._opts.version )
         return this.version(cb);
-      return this[this._opts.command].call(this, cb);
+      return this[this._opts.command].call(this, function(err) {
+        if ( err )
+          return cb(err);
+        self._saveOptions(cb);
+      });
     }
 
   }, {
