@@ -238,7 +238,7 @@ define([
     constructor: function(options) {
       this._opts = {};
       // TODO: figure out how to pull this dynamically from package.json...
-      this._version = '0.0.7';
+      this._version = '0.0.8';
     },
 
     initialize: function(args, cb) {
@@ -341,7 +341,6 @@ define([
 
       if ( ! storedOptions && _.indexOf(['backup'], self._opts.command) < 0 )
       {
-        console.log('loading old options');
         return fs.readFile(self._opts.directory + '/.sync/options.json', function(err, data) {
           if ( err )
             return cb(err);
@@ -529,12 +528,6 @@ define([
           var adapter = null;
           syncml.common.cascade([
 
-            // todo: really clear the directory?... what if i just want to do
-            //       a fresh backup from the same stored info?...
-
-            // TODO: at least warn the user if a current backup is being
-            //       destroyed...
-
             // configure local stores and agents
             function(cb) {
               syncml.common.cascade(uris, function(uri, cb) {
@@ -644,7 +637,7 @@ define([
             // save options (in case there was a store error and xstores was updated)
             _.bind(self._saveOptions, self),
 
-            // todo: is there a "non-private" method call?...
+            // re-save the adapter (since stores may have been removed)
             function(cb) { adapter.save(cb); },
 
             // take a snapshot (so that change detection can happen)
@@ -745,7 +738,6 @@ define([
 
         // execute the sync
         function(cb) {
-          // todo: should server-initiated changes in synctype be tolerated?
           adapter.sync(peer, syncml.SYNCTYPE_TWO_WAY, function(err, stats) {
             if ( err )
               return cb(err);
@@ -756,10 +748,6 @@ define([
             return cb();
           });
         },
-
-        // save any changes to the adapter
-        // todo: shouldn't this be done automatically by adapter.sync()?...
-        function(cb) { adapter.save(cb); },
 
         // record the current state
         function(cb) {
@@ -776,7 +764,21 @@ define([
       // todo: should these be Tool member variables?...
       var sdb  = new sqlite3.Database(self._opts.directory + '/.sync/syncml.db');
       var idb  = new indexeddbjs.indexedDB('sqlite3', sdb);
-      var ctxt = new syncml.Context({storage: idb});
+      var ctxt = new syncml.Context({
+        storage:  idb,
+        // create a listener that will forbid any changes in synctype
+        listener: function(event) {
+          if ( ! event || event.type != 'synctype.change' )
+            return;
+          var msg = 'server vexingly changed synctype from "'
+            + syncml.common.mode2string(event.modeReq)
+            + '" to "'
+            + syncml.common.mode2string(event.mode)
+            + '"';
+          console.log(msg + ' - aborting');
+          throw new syncml.common.LogicalError(msg);
+        }
+      });
       var adapter = null;
       var peer    = null;
       syncml.common.cascade([
@@ -791,6 +793,7 @@ define([
               return cb('cannot sync: no known peer recorded');
             if ( peers.length != 1 )
               return cb('cannot sync: multiple peers recorded');
+            // TODO: put the stores in read-only state...
             self._makeAgents(newAdapter, peers[0], function(err) {
               if ( err )
                 return cb(err);
@@ -801,11 +804,8 @@ define([
           });
         },
 
-        // TODO: put the stores in read-only state...
-
         // execute the sync
         function(cb) {
-          // TODO: tell the adapter than no change in synctype will be tolerated
           adapter.sync(peer, syncml.SYNCTYPE_REFRESH_FROM_CLIENT, function(err, stats) {
             if ( err )
               return cb(err);
@@ -819,10 +819,6 @@ define([
 
         // todo: if the stores are read-only, then no state change should be
         //       possible...
-
-        // save any changes to the adapter
-        // todo: shouldn't this be done automatically by adapter.sync()?...
-        function(cb) { adapter.save(cb); },
 
         // record the current state
         function(cb) {
