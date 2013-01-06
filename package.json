@@ -26,8 +26,12 @@
     "jasmine-node":  ">=1.0.26"
   },
   "keywords": [
+    "universal"
+    "synchronization",
     "syncml",
     "backup",
-    "tool"
+    "tool",
+    "command line",
+    "cli"
   ]
 }
