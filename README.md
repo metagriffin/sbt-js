@@ -24,11 +24,8 @@ backup or sync.
 
 ``` shell
 $ sbt --server URL --username USERNAME --password PASSWORD backup DIRECTORY
-```
 
-Example:
-
-``` shell
+example:
 $ sbt -s https://example.com/funambol/ds -u guest -p guest backup ./backups/latest
 ```
 
@@ -36,10 +33,17 @@ Then, to restore the server to that snapshot, simply use the ``restore`` command
 
 ``` shell
 $ sbt restore DIRECTORY
-```
 
-Example:
-
-``` shell
+example:
 $ sbt restore ./backups/latest
 ```
+
+Other supported commands:
+
+``` shell
+$ sbt --help            # shows a help screen with all supported options
+$ sbt discover DIR      # displays the storage structure of the remote server
+$ sbt sync DIR          # brings the DIRectory and the remote server into sync
+```
+
+Enjoy!
