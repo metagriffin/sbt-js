@@ -1,7 +1,7 @@
 {
   "name":           "sbt",
   "description":    "The SyncML Backup Tool.",
-  "version":        "0.0.9",
+  "version":        "0.0.10",
   "main":           "backuptool.js",
   "author":         "metagriffin <mg.npmjs@uberdev.org>",
   "repository": {

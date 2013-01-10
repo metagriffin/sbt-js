@@ -238,7 +238,7 @@ define([
     constructor: function(options) {
       this._opts = {};
       // TODO: figure out how to pull this dynamically from package.json...
-      this._version = '0.0.9';
+      this._version = '0.0.10';
     },
 
     initialize: function(args, cb) {

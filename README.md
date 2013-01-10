@@ -13,7 +13,9 @@ version.
 
 With ``npm`` installed, simply issue the following command:
 
-    $ npm install -g sbt
+``` bash
+npm install -g sbt
+```
 
 ## Usage
 
@@ -27,27 +29,27 @@ backup or sync.
 ``sbt backup`` call:
 
 ``` bash
-$ sbt --server URL --username USERNAME --password PASSWORD backup DIRECTORY
+sbt --server URL --username USERNAME --password PASSWORD backup DIRECTORY
 
 example:
-$ sbt -s https://example.com/funambol/ds -u guest -p guest backup ./backups/latest
+sbt -s https://example.com/funambol/ds -u guest -p guest backup ./backups/latest
 ```
 
 Then, to restore the server to that snapshot, simply use the ``restore`` command:
 
 ``` bash
-$ sbt restore DIRECTORY
+sbt restore DIRECTORY
 
 example:
-$ sbt restore ./backups/latest
+sbt restore ./backups/latest
 ```
 
 Other supported commands:
 
 ``` bash
-$ sbt --help            # shows a help screen with all supported options
-$ sbt discover DIR      # displays the storage structure of the remote server
-$ sbt sync DIR          # brings the DIRectory and the remote server into sync
+sbt --help            # shows a help screen with all supported options
+sbt discover DIR      # displays the storage structure of the remote server
+sbt sync DIR          # brings the DIRectory and the remote server into sync
 ```
 
 Enjoy!
