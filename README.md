@@ -1,5 +1,4 @@
-sbt (SyncML Backup Tool)
-========================
+# sbt (SyncML Backup Tool)
 
 The command-line ``sbt`` tool allows you to perform a complete backup
 of a server that exposes its data via
@@ -10,8 +9,13 @@ local directory. During a ``restore`` operation, it simply tells the
 server to delete all of its data and uploads the previously downloaded
 version.
 
-Usage
-=====
+## Installation
+
+With ``npm`` installed, simply issue the following command:
+
+  $ npm install -g sbt
+
+## Usage
 
 Typical usage comprises first doing a ``backup`` and then at some
 point a ``restore``. sbt does, however, also support doing a
