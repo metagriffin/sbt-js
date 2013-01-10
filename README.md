@@ -13,7 +13,7 @@ version.
 
 With ``npm`` installed, simply issue the following command:
 
-  $ npm install -g sbt
+    $ npm install -g sbt
 
 ## Usage
 
