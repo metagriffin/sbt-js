@@ -11,6 +11,7 @@ if ( typeof(define) !== 'function')
   var define = require('amdefine')(module);
 
 define([
+  'stacktrace-js',
   'util',
   'fs',
   'path',
@@ -21,6 +22,7 @@ define([
   'sqlite3',
   'syncml-js'
 ], function(
+  stacktrace,
   util,
   fs,
   pathmod,
@@ -317,7 +319,7 @@ define([
         dest         : 'xstores',
         defaultValue : storedOptions ? storedOptions.xstores : null,
         action       : 'append',
-        help         : 'exclusive version of --include-store (ie. specifies the inverse set)'
+        help         : 'exclusive version of --include-store (i.e. specifies the inverse set)'
       });
 
 
@@ -377,7 +379,7 @@ define([
       // note: using memory-based storage in order to ensure this is not
       //       serialized (since i'm trying to discover the current state)
       var sdb     = new sqlite3.Database(':memory:');
-      var idb     = new indexeddbjs.indexedDB('sqlite3', sdb);
+      var idb     = new indexeddbjs.makeScope('sqlite3', sdb);
       var ctxt    = new syncml.Context({storage: idb});
       ctxt.getEasyClientAdapter({
         displayName: 'SyncML Backup Tool (syncml-js) [discover]',
@@ -563,7 +565,7 @@ define([
             function(cb) {
               // todo: should these be Tool member variables?...
               var sdb     = new sqlite3.Database(self._opts.directory + '/.sync/syncml.db');
-              var idb     = new indexeddbjs.indexedDB('sqlite3', sdb);
+              var idb     = new indexeddbjs.makeScope('sqlite3', sdb);
               var ctxt    = new syncml.Context({storage: idb});
               ctxt.getEasyClientAdapter({
                 displayName: 'SyncML Backup Tool (syncml-js)',
@@ -674,7 +676,7 @@ define([
       var s0   = new StdoutStream();
       // todo: should these be Tool member variables?...
       var sdb  = new sqlite3.Database(self._opts.directory + '/.sync/syncml.db');
-      var idb  = new indexeddbjs.indexedDB('sqlite3', sdb);
+      var idb  = new indexeddbjs.makeScope('sqlite3', sdb);
       var ctxt = new syncml.Context({storage: idb});
       var adapter = null;
       var peer    = null;
@@ -763,12 +765,13 @@ define([
       var s0   = new StdoutStream();
       // todo: should these be Tool member variables?...
       var sdb  = new sqlite3.Database(self._opts.directory + '/.sync/syncml.db');
-      var idb  = new indexeddbjs.indexedDB('sqlite3', sdb);
+      var idb  = new indexeddbjs.makeScope('sqlite3', sdb);
       var ctxt = new syncml.Context({
         storage:  idb,
         // create a listener that will forbid any changes in synctype
+        // TODO: upgrade this to use options.ua instead...
         listener: function(event) {
-          if ( ! event || event.type != 'synctype.change' )
+          if ( ! event || event.type != 'sync.mode.switch' )
             return;
           var msg = 'server vexingly changed synctype from "'
             + syncml.common.mode2string(event.modeReq)
@@ -852,7 +855,11 @@ define([
         return this.version(cb);
       return this[this._opts.command].call(this, function(err) {
         if ( err )
+        {
+          if ( self._opts.verbose > 0 )
+            util.error(stacktrace().join('\n'));
           return cb(err);
+        }
         self._saveOptions(cb);
       });
     }
