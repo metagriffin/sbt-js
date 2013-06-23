@@ -17,6 +17,23 @@ With ``npm`` installed, simply issue the following command:
 npm install -g sbt
 ```
 
+Note that if you are using node pre-0.8, you will need to explicitly
+install an earlier version of the `request` module, e.g.:
+
+``` bash
+npm install -g sbt request@2.12.0
+```
+
+Also, in some installations of `sqlite3`, it doesn't correctly
+auto-compile the sqlite3 library, in which case you will need to do
+this:
+
+``` bash
+npm install -g sbt request@2.12.0 node-gyp
+cd /usr/local/lib/node_modules/sbt/node_modules/sqlite3
+node-gyp configure
+```
+
 ## Usage
 
 Typical usage comprises first doing a ``backup`` and then at some
