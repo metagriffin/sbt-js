@@ -1,9 +1,13 @@
 {
   "name":           "sbt",
   "description":    "The SyncML Backup Tool.",
-  "version":        "0.0.10",
+  "version":        "0.0.11",
   "main":           "backuptool.js",
   "author":         "metagriffin <mg.npmjs@uberdev.org>",
+  "licenses": [{
+    "type":           "MIT",
+    "url":            "http://opensource.org/licenses/MIT"
+  }],
   "repository": {
     "type": "git",
     "url":  "git://github.com/metagriffin/sbt-js.git"
